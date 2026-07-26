@@ -1,5 +1,9 @@
 # MetricProof
 
+[![Tests](https://github.com/AtomicGlance/metricproof/actions/workflows/tests.yml/badge.svg)](https://github.com/AtomicGlance/metricproof/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/metricproof.svg)](https://pypi.org/project/metricproof/)
+[![Python](https://img.shields.io/pypi/pyversions/metricproof.svg)](https://pypi.org/project/metricproof/)
+
 **Executable checks for the assumptions behind business metrics.**
 
 MetricProof is a small, dependency-free Python package and CLI for detecting
@@ -27,6 +31,9 @@ ranges, and duplicate rows. MetricProof has a narrower purpose: it turns
 - `unique_grain` and `numeric_range` protect the table structure and metric
   bounds supporting those business assertions.
 
+The checks are deliberately narrow. They complement schema validation by
+testing whether a published analytical result still matches its declared
+population, grain, and calculation.
 
 ## Quick start
 
@@ -144,14 +151,15 @@ and JSON data and can also accept records from a dataframe:
 rows = dataframe.to_dict(orient="records")
 ```
 
-## What this demonstrates for a data-analysis portfolio
+## Where it fits
 
-- Translating KPI definitions into testable business rules
-- Retention and cohort-analysis methodology
-- Denominator governance and survivorship-bias detection
-- Cross-table reconciliation and analytical grain control
-- Python package design, type hints, CLI design, and JSON contracts
-- Automated tests, CI, machine-readable reporting, and documentation
+MetricProof is useful after analytical tables or dashboard extracts have been
+produced and before their metrics are published. A JSON contract can run
+locally, in a scheduled pipeline, or in CI and return a non-zero exit code when
+a critical analytical assumption fails.
+
+It does not replace source-system validation. Instead, it checks the layer
+between clean source data and a trustworthy reported metric.
 
 ## Design boundaries
 
@@ -162,8 +170,7 @@ MetricProof intentionally stays small:
   rolling or resurrection-style retention.
 - The package validates supplied analytical outputs; it does not calculate
   product KPIs or replace source-system tests.
-- This repository is an initial `0.1.0` portfolio release, not a claim of
-  production maturity.
+- Version `0.1.0` is an initial public release with a deliberately small API.
 
 ## Development
 
