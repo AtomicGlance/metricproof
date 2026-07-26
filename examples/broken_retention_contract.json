@@ -1,0 +1,46 @@
+{
+  "title": "Broken SaaS retention metric audit",
+  "datasets": {
+    "headline": "data/headline_broken.csv",
+    "segments": "data/segments_broken.csv",
+    "cohorts": "data/cohorts_broken.csv",
+    "baseline": "data/baseline_accounts.csv",
+    "evaluated": "data/evaluated_accounts_broken.csv"
+  },
+  "checks": [
+    {
+      "id": "activation-rate-recomputes",
+      "type": "ratio_consistency",
+      "dataset": "headline",
+      "numerator": "activated_accounts",
+      "denominator": "eligible_accounts",
+      "rate": "activation_rate"
+    },
+    {
+      "id": "segment-mrr-ties-to-headline",
+      "type": "reconciliation",
+      "left": {"dataset": "segments", "column": "ending_mrr"},
+      "right": {"dataset": "headline", "column": "ending_mrr"},
+      "aggregate": "sum",
+      "tolerance": 0
+    },
+    {
+      "id": "eligible-population-survives",
+      "type": "population_preserved",
+      "baseline": "baseline",
+      "evaluated": "evaluated",
+      "key": "account_id"
+    },
+    {
+      "id": "retention-cohorts-are-valid",
+      "type": "cohort_integrity",
+      "dataset": "cohorts",
+      "cohort": "cohort_month",
+      "period": "month_number",
+      "retained": "retained_accounts",
+      "size": "cohort_size",
+      "rate": "retention_rate",
+      "monotonic": true
+    }
+  ]
+}

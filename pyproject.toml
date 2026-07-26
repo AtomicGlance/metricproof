@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metricproof"
+version = "0.1.0"
+description = "Executable checks for trustworthy business metrics, cohorts, denominators, and analytical populations."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "AtomicGlance" }
+]
+keywords = [
+  "analytics",
+  "data-quality",
+  "metrics",
+  "cohort-analysis",
+  "retention",
+  "reconciliation"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Information Analysis"
+]
+dependencies = []
+
+[project.scripts]
+metricproof = "metricproof.cli:main"
+
+[project.urls]
+Repository = "https://github.com/AtomicGlance/metricproof"
+Issues = "https://github.com/AtomicGlance/metricproof/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
