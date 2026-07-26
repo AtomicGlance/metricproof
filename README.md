@@ -27,8 +27,6 @@ ranges, and duplicate rows. MetricProof has a narrower purpose: it turns
 - `unique_grain` and `numeric_range` protect the table structure and metric
   bounds supporting those business assertions.
 
-This is a portfolio-distinctive combination, not a claim that no other
-data-quality framework has related capabilities.
 
 ## Quick start
 
@@ -154,13 +152,6 @@ rows = dataframe.to_dict(orient="records")
 - Cross-table reconciliation and analytical grain control
 - Python package design, type hints, CLI design, and JSON contracts
 - Automated tests, CI, machine-readable reporting, and documentation
-
-Suggested CV bullet:
-
-> Built MetricProof, a dependency-free Python analytics QA package that audits
-> KPI formulas, cohort denominators, entity-population preservation, and
-> cross-table reconciliation; shipped a JSON contract CLI, actionable evidence
-> reports, automated tests, and multi-version CI.
 
 ## Design boundaries
 
