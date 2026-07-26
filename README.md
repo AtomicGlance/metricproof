@@ -35,9 +35,15 @@ data-quality framework has related capabilities.
 MetricProof requires Python 3.11 or newer and has no runtime dependencies.
 
 ```bash
+python -m pip install metricproof
+metricproof --help
+```
+
+To run the included SaaS retention audit:
+
+```bash
 git clone https://github.com/AtomicGlance/metricproof.git
 cd metricproof
-python -m pip install .
 metricproof audit examples/retention_contract.json
 ```
 
