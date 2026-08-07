@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import __version__
 from .contract import audit_contract
 from .report import render_json, render_markdown, render_text
 
@@ -14,6 +15,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="metricproof",
         description="Audit the assumptions behind business metrics.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show the installed MetricProof version and exit.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     audit = subparsers.add_parser("audit", help="Run a JSON analytical contract.")

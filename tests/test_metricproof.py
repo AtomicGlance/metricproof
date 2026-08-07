@@ -113,6 +113,19 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(failing.returncode, 1)
         self.assertIn("Result: FAIL", failing.stdout)
 
+    def test_cli_version(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "metricproof", "--version"],
+            env={"PYTHONPATH": str(ROOT / "src")},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "metricproof 0.1.0\n")
+        self.assertEqual(result.stderr, "")
+
 
 if __name__ == "__main__":
     unittest.main()

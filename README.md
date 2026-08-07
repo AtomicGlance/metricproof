@@ -42,6 +42,7 @@ MetricProof requires Python 3.11 or newer and has no runtime dependencies.
 ```bash
 python -m pip install metricproof
 metricproof --help
+metricproof --version
 ```
 
 To run the included SaaS retention audit:
