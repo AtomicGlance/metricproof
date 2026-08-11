@@ -177,7 +177,8 @@ MetricProof intentionally stays small:
   rolling or resurrection-style retention.
 - The package validates supplied analytical outputs; it does not calculate
   product KPIs or replace source-system tests.
-- Version `0.1.0` is an initial public release with a deliberately small API.
+- Version `0.1.1` adds reproducible dataset provenance while keeping the API
+  deliberately small.
 
 ## Development
 

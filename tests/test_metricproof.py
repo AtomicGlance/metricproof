@@ -141,7 +141,7 @@ class ContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "metricproof 0.1.0\n")
+        self.assertEqual(result.stdout, "metricproof 0.1.1\n")
         self.assertEqual(result.stderr, "")
 
 

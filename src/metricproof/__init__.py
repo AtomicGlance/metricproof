@@ -23,4 +23,4 @@ __all__ = [
     "check_unique_grain",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
