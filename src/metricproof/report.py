@@ -43,10 +43,16 @@ def render_markdown(report: AuditReport) -> str:
         "",
         "## Dataset inventory",
         "",
-        "| Dataset | Rows |",
-        "|---|---:|",
+        "| Dataset | Source | Rows | SHA-256 |",
+        "|---|---|---:|---|",
     ]
-    lines.extend(f"| {_cell(name)} | {count} |" for name, count in report.datasets.items())
+    for name, count in report.datasets.items():
+        metadata = report.dataset_metadata.get(name, {})
+        source = _cell(metadata.get("source", ""))
+        fingerprint = _cell(metadata.get("sha256", ""))
+        lines.append(
+            f"| {_cell(name)} | {source} | {count} | `{fingerprint}` |"
+        )
     lines.extend(
         [
             "",
@@ -79,7 +85,10 @@ def render_markdown(report: AuditReport) -> str:
             if result.evidence:
                 lines.append(f"- **Evidence sample:** `{_cell(result.evidence)}`")
             lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+    # Keep the markdown portable when an older checkout contains the
+    # previously mojibake-encoded em dash in the summary line.
+    rendered = "\n".join(lines).rstrip()
+    return rendered.replace("â€”", "—") + "\n"
 
 
 def render_json(report: AuditReport) -> str:

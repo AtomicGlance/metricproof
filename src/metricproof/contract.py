@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Callable
@@ -34,6 +35,16 @@ def _load_rows(path: Path) -> list[dict[str, Any]]:
     raise ValueError(f"unsupported dataset format for {path}; use CSV or JSON")
 
 
+def _sha256(path: Path) -> str:
+    """Return the SHA-256 fingerprint of the exact dataset file read."""
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _error_result(check: dict[str, Any], exc: Exception) -> CheckResult:
     return CheckResult(
         check_id=str(check.get("id", "unnamed-check")),
@@ -63,10 +74,22 @@ def audit_contract(contract_path: str | Path) -> AuditReport:
         raise ValueError("contract requires object 'datasets' and array 'checks'")
 
     datasets: dict[str, list[dict[str, Any]]] = {}
+    dataset_metadata: dict[str, dict[str, Any]] = {}
     for name, spec in dataset_specs.items():
         relative_path = spec["path"] if isinstance(spec, dict) else spec
+        if not isinstance(relative_path, (str, Path)) or not str(relative_path):
+            raise ValueError(
+                f"dataset {name!r} must be a path string or an object with a 'path' string"
+            )
         dataset_path = (path.parent / relative_path).resolve()
-        datasets[name] = _load_rows(dataset_path)
+        rows = _load_rows(dataset_path)
+        datasets[name] = rows
+        dataset_metadata[name] = {
+            "source": str(relative_path),
+            "rows": len(rows),
+            "size_bytes": dataset_path.stat().st_size,
+            "sha256": _sha256(dataset_path),
+        }
 
     results: list[CheckResult] = []
     for index, raw_check in enumerate(checks, start=1):
@@ -84,6 +107,7 @@ def audit_contract(contract_path: str | Path) -> AuditReport:
         title=str(contract.get("title", path.stem)),
         results=results,
         datasets={name: len(rows) for name, rows in datasets.items()},
+        dataset_metadata=dataset_metadata,
     )
 
 

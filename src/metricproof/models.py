@@ -40,6 +40,7 @@ class AuditReport:
     generated_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+    dataset_metadata: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @property
     def counts(self) -> dict[str, int]:
@@ -67,5 +68,6 @@ class AuditReport:
             "passed": self.passed,
             "counts": self.counts,
             "datasets": self.datasets,
+            "dataset_metadata": self.dataset_metadata,
             "results": [result.to_dict() for result in self.results],
         }
