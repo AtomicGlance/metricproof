@@ -125,6 +125,12 @@ metricproof audit examples/retention_contract.json \
   --format markdown --output audit-report.md
 ```
 
+JSON and Markdown reports also record a dataset inventory: the
+contract-relative source path, row count, file size, and SHA-256 fingerprint.
+This makes an audit reproducible and lets a reviewer confirm which exact
+extracts produced the reported result, even when the source files are
+regenerated later.
+
 ## Python API
 
 ```python

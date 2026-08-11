@@ -73,13 +73,31 @@ class ContractTests(unittest.TestCase):
         )
         self.assertFalse(report.passed)
         self.assertEqual(report.counts, {"pass": 0, "fail": 4, "error": 0})
-        self.assertIn("survivorship bias", render_markdown(report))
+        markdown = render_markdown(report)
+        self.assertIn("survivorship bias", markdown)
+        self.assertIn("—", markdown)
+        self.assertNotIn("â€”", markdown)
 
     def test_json_report_is_machine_readable(self):
         report = audit_contract(ROOT / "examples" / "retention_contract.json")
         payload = json.loads(render_json(report))
         self.assertTrue(payload["passed"])
         self.assertEqual(len(payload["results"]), 6)
+
+        headline = payload["dataset_metadata"]["headline"]
+        self.assertEqual(headline["source"], "data/headline.csv")
+        self.assertEqual(headline["rows"], payload["datasets"]["headline"])
+        self.assertEqual(len(headline["sha256"]), 64)
+        self.assertTrue(all(char in "0123456789abcdef" for char in headline["sha256"]))
+        markdown = render_markdown(report)
+        self.assertIn("| Dataset | Source | Rows | SHA-256 |", markdown)
+        self.assertIn(headline["sha256"], markdown)
+
+    def test_dataset_fingerprint_is_stable(self):
+        contract = ROOT / "examples" / "retention_contract.json"
+        first = audit_contract(contract).dataset_metadata
+        second = audit_contract(contract).dataset_metadata
+        self.assertEqual(first, second)
 
     def test_cli_exit_codes(self):
         environment = {"PYTHONPATH": str(ROOT / "src")}
