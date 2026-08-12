@@ -49,3 +49,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 metricproof = ["py.typed", "schemas/*.json"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

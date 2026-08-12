@@ -16,8 +16,8 @@ from .checks import (
     check_reconciliation,
     check_unique_grain,
 )
-from .models import AuditReport, CheckResult
 from .evidence import hash_file
+from .models import AuditReport, CheckResult
 from .plugins import Datasets, get_check_runner, register_check_type
 
 SUPPORTED_CONTRACT_VERSIONS = frozenset({"1.0"})

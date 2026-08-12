@@ -1,5 +1,6 @@
 """MetricProof: executable checks for trustworthy analytical metrics."""
 
+from ._version import __version__
 from .checks import (
     check_cohort_integrity,
     check_numeric_range,
@@ -18,7 +19,6 @@ from .evidence import (
 )
 from .models import AuditReport, CheckResult
 from .plugins import available_check_types, register_check_type
-from ._version import __version__
 
 __all__ = [
     "AuditReport",

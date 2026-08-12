@@ -23,7 +23,6 @@ from metricproof.plugins import unregister_check_type
 from metricproof.report import render_json, render_markdown
 from metricproof.schema import load_schema
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
