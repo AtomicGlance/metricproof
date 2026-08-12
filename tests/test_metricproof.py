@@ -7,14 +7,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
 from metricproof import (
+    CheckResult,
     audit_contract,
     check_cohort_integrity,
     check_population_preserved,
     check_ratio_consistency,
     check_unique_grain,
+    register_check_type,
 )
+from metricproof.contract import load_contract
+from metricproof.plugins import unregister_check_type
 from metricproof.report import render_json, render_markdown
+from metricproof.schema import load_schema
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,19 +91,103 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(payload["passed"])
         self.assertEqual(len(payload["results"]), 6)
 
-        headline = payload["dataset_metadata"]["headline"]
-        self.assertEqual(headline["source"], "data/headline.csv")
-        self.assertEqual(headline["rows"], payload["datasets"]["headline"])
+        self.assertEqual(payload["schema_version"], "1.0")
+        self.assertEqual(payload["report_type"], "metric-audit")
+        self.assertEqual(payload["producer"]["name"], "metricproof")
+        self.assertEqual(payload["producer"]["version"], "0.2.0")
+        headline = next(
+            artifact for artifact in payload["artifacts"]
+            if artifact["name"] == "headline"
+        )
+        self.assertEqual(headline["uri"], "data/headline.csv")
+        self.assertEqual(headline["metadata"]["rows"], report.datasets["headline"])
         self.assertEqual(len(headline["sha256"]), 64)
         self.assertTrue(all(char in "0123456789abcdef" for char in headline["sha256"]))
         markdown = render_markdown(report)
         self.assertIn("| Dataset | Source | Rows | SHA-256 |", markdown)
         self.assertIn(headline["sha256"], markdown)
 
+    def test_contract_and_evidence_schemas_are_bundled(self):
+        contract_schema = load_schema("contract")
+        evidence_schema = load_schema("evidence")
+        Draft202012Validator.check_schema(contract_schema)
+        Draft202012Validator.check_schema(evidence_schema)
+        self.assertEqual(contract_schema["properties"]["contract_version"]["const"], "1.0")
+        self.assertEqual(evidence_schema["properties"]["schema_version"]["const"], "1.0")
+
+        contract = json.loads(
+            (ROOT / "examples" / "retention_contract.json").read_text(encoding="utf-8")
+        )
+        Draft202012Validator(contract_schema).validate(contract)
+        report = audit_contract(ROOT / "examples" / "retention_contract.json")
+        Draft202012Validator(evidence_schema).validate(report.to_dict())
+
+    def test_contract_version_is_required_and_checked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "contract.json"
+            path.write_text('{"datasets": {"data": "data.csv"}, "checks": []}')
+            with self.assertRaisesRegex(ValueError, "contract_version"):
+                load_contract(path)
+
+            path.write_text(
+                '{"contract_version": "2.0", "datasets": {"data": "data.csv"}, "checks": []}'
+            )
+            with self.assertRaisesRegex(ValueError, "unsupported contract_version"):
+                load_contract(path)
+
+    def test_duplicate_check_ids_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "contract.json"
+            path.write_text(json.dumps({
+                "contract_version": "1.0",
+                "datasets": {"data": "data.csv"},
+                "checks": [
+                    {"id": "duplicate", "type": "one"},
+                    {"id": "duplicate", "type": "two"},
+                ],
+            }))
+            with self.assertRaisesRegex(ValueError, "duplicate check id"):
+                load_contract(path)
+
+    def test_registered_plugin_check_runs_from_contract(self):
+        def always_passes(check, datasets, severity):
+            return CheckResult(
+                check_id=check["id"],
+                check_type="always_passes",
+                status="pass",
+                severity=severity,
+                message=f"Plugin inspected {len(datasets[check['dataset']])} row(s).",
+            )
+
+        register_check_type("always_passes", always_passes)
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "data.csv").write_text("id\n1\n", encoding="utf-8")
+                contract = root / "contract.json"
+                contract.write_text(json.dumps({
+                    "contract_version": "1.0",
+                    "datasets": {"data": "data.csv"},
+                    "checks": [
+                        {"id": "external-check", "type": "always_passes", "dataset": "data"}
+                    ],
+                }), encoding="utf-8")
+                report = audit_contract(contract)
+                self.assertTrue(report.passed)
+                self.assertEqual(report.results[0].message, "Plugin inspected 1 row(s).")
+        finally:
+            unregister_check_type("always_passes")
+
     def test_dataset_fingerprint_is_stable(self):
         contract = ROOT / "examples" / "retention_contract.json"
         first = audit_contract(contract).dataset_metadata
         second = audit_contract(contract).dataset_metadata
+        self.assertEqual(first, second)
+
+    def test_report_generation_timestamp_is_stable(self):
+        report = audit_contract(ROOT / "examples" / "retention_contract.json")
+        first = report.to_dict()["generated_at"]
+        second = report.to_dict()["generated_at"]
         self.assertEqual(first, second)
 
     def test_cli_exit_codes(self):
@@ -141,8 +232,25 @@ class ContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "metricproof 0.1.1\n")
+        self.assertEqual(result.stdout, "metricproof 0.2.0\n")
         self.assertEqual(result.stderr, "")
+
+    def test_cli_validates_contract_without_loading_datasets(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "metricproof",
+                "validate-contract",
+                str(ROOT / "examples" / "retention_contract.json"),
+            ],
+            env={"PYTHONPATH": str(ROOT / "src")},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("Valid MetricProof contract 1.0", result.stdout)
 
 
 if __name__ == "__main__":

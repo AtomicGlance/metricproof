@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AtomicGlance/metricproof/schemas/evidence-v1.schema.json",
+  "title": "MetricProof evidence report v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_type",
+    "title",
+    "generated_at",
+    "producer",
+    "passed",
+    "counts",
+    "artifacts",
+    "results",
+    "context"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_type": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "producer": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "passed": {"type": "boolean"},
+    "counts": {
+      "type": "object",
+      "required": ["pass", "fail", "error"],
+      "properties": {
+        "pass": {"type": "integer", "minimum": 0},
+        "fail": {"type": "integer", "minimum": 0},
+        "error": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "results": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/result"}
+    },
+    "context": {"type": "object"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": ["name", "uri", "sha256", "size_bytes", "metadata"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "uri": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "media_type": {"type": ["string", "null"]},
+        "metadata": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "check_id",
+        "check_type",
+        "status",
+        "severity",
+        "message",
+        "evidence",
+        "why_it_matters",
+        "suggested_fix"
+      ],
+      "properties": {
+        "check_id": {"type": "string", "minLength": 1},
+        "check_type": {"type": "string", "minLength": 1},
+        "status": {"enum": ["pass", "fail", "error"]},
+        "severity": {"enum": ["critical", "warning", "info"]},
+        "message": {"type": "string"},
+        "observed": {},
+        "expected": {},
+        "evidence": {"type": "array", "items": {"type": "object"}},
+        "why_it_matters": {"type": "string"},
+        "suggested_fix": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

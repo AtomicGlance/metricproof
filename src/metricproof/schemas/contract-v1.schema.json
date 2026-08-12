@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AtomicGlance/metricproof/schemas/contract-v1.schema.json",
+  "title": "MetricProof analytical contract v1",
+  "type": "object",
+  "required": ["contract_version", "datasets", "checks"],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "title": {"type": "string", "minLength": 1},
+    "datasets": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          {"type": "string", "minLength": 1},
+          {
+            "type": "object",
+            "required": ["path"],
+            "properties": {"path": {"type": "string", "minLength": 1}},
+            "additionalProperties": true
+          }
+        ]
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/check"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "check": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1},
+        "severity": {"enum": ["critical", "warning", "info"]}
+      },
+      "additionalProperties": true
+    }
+  }
+}
