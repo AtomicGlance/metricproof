@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
 from . import __version__
-from .contract import audit_contract
+from .contract import audit_contract, load_contract
 from .report import render_json, render_markdown, render_text
+from .schema import load_schema
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -32,14 +34,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Report format (default: text).",
     )
     audit.add_argument("--output", help="Optional report output path.")
+    validate = subparsers.add_parser(
+        "validate-contract", help="Validate a contract without reading datasets."
+    )
+    validate.add_argument("contract", help="Path to a contract JSON file.")
+    schema = subparsers.add_parser("schema", help="Print a bundled JSON schema.")
+    schema.add_argument("kind", choices=("contract", "evidence"))
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "schema":
+        print(json.dumps(load_schema(args.kind), indent=2))
+        return 0
+    if args.command == "validate-contract":
+        try:
+            path, contract = load_contract(args.contract)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(f"MetricProof configuration error: {exc}", file=sys.stderr)
+            return 2
+        print(
+            f"Valid MetricProof contract {contract['contract_version']}: {path}"
+        )
+        return 0
     try:
         report = audit_contract(args.contract)
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"MetricProof configuration error: {exc}", file=sys.stderr)
         return 2
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metricproof"
-version = "0.1.1"
+version = "0.2.0"
 description = "Executable checks for trustworthy business metrics, cohorts, denominators, and analytical populations."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -33,6 +33,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+dev = ["jsonschema>=4.23", "ruff>=0.12"]
+
 [project.scripts]
 metricproof = "metricproof.cli:main"
 
@@ -43,3 +46,9 @@ PyPI = "https://pypi.org/project/metricproof/"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+metricproof = ["py.typed", "schemas/*.json"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

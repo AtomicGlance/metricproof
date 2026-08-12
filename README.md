@@ -91,6 +91,7 @@ the contract file.
 
 ```json
 {
+  "contract_version": "1.0",
   "title": "SaaS retention metric audit",
   "datasets": {
     "headline": "data/headline.csv",
@@ -130,6 +131,51 @@ contract-relative source path, row count, file size, and SHA-256 fingerprint.
 This makes an audit reproducible and lets a reviewer confirm which exact
 extracts produced the reported result, even when the source files are
 regenerated later.
+
+MetricProof 0.2 reports use a versioned, domain-neutral evidence envelope. The
+JSON output includes `schema_version`, `report_type`, producer identity,
+artifact fingerprints, structured check results, and report-specific context.
+Print the bundled schemas or validate a contract before loading its data:
+
+```bash
+metricproof schema contract
+metricproof schema evidence
+metricproof validate-contract examples/retention_contract.json
+```
+
+## Check plugins
+
+External packages can add contract check types without modifying MetricProof.
+A runner receives the check definition, loaded datasets, and severity, and
+returns a `CheckResult`:
+
+```python
+from metricproof import CheckResult, register_check_type
+
+def row_count(check, datasets, severity):
+    observed = len(datasets[check["dataset"]])
+    expected = int(check["expected"])
+    return CheckResult(
+        check_id=check["id"],
+        check_type="row_count",
+        status="pass" if observed == expected else "fail",
+        severity=severity,
+        message=f"Observed {observed} row(s); expected {expected}.",
+        observed=observed,
+        expected=expected,
+    )
+
+register_check_type("row_count", row_count)
+```
+
+Published plugins should expose the runner through the
+`metricproof.checks` entry-point group. The entry-point name becomes the
+contract check type:
+
+```toml
+[project.entry-points."metricproof.checks"]
+row_count = "my_package.checks:row_count"
+```
 
 ## Python API
 
@@ -177,8 +223,8 @@ MetricProof intentionally stays small:
   rolling or resurrection-style retention.
 - The package validates supplied analytical outputs; it does not calculate
   product KPIs or replace source-system tests.
-- Version `0.1.1` adds reproducible dataset provenance while keeping the API
-  deliberately small.
+- Version `0.2.0` introduces versioned contracts, external check plugins, and
+  a stable evidence-report schema shared with domain integrations.
 
 ## Development
 

@@ -41,6 +41,8 @@ class AuditReport:
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
     dataset_metadata: dict[str, dict[str, Any]] = field(default_factory=dict)
+    contract_version: str = "1.0"
+    contract_metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def counts(self) -> dict[str, int]:
@@ -61,13 +63,47 @@ class AuditReport:
     def exit_code(self) -> int:
         return 0 if self.passed else 1
 
+    def to_evidence_report(self):
+        """Convert the analytical result into the stable shared evidence model."""
+
+        from .evidence import ArtifactEvidence, EvidenceReport
+
+        artifacts = []
+        for name, rows in self.datasets.items():
+            metadata = dict(self.dataset_metadata.get(name, {}))
+            source = str(metadata.pop("source", name))
+            size_bytes = int(metadata.pop("size_bytes", 0))
+            sha256 = str(metadata.pop("sha256", ""))
+            artifacts.append(
+                ArtifactEvidence(
+                    name=name,
+                    uri=source,
+                    sha256=sha256,
+                    size_bytes=size_bytes,
+                    media_type=_media_type(source),
+                    metadata={"rows": rows, **metadata},
+                )
+            )
+        return EvidenceReport(
+            report_type="metric-audit",
+            title=self.title,
+            results=self.results,
+            artifacts=artifacts,
+            context={
+                "contract_version": self.contract_version,
+                "contract": self.contract_metadata,
+            },
+            generated_at=self.generated_at,
+        )
+
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "title": self.title,
-            "generated_at": self.generated_at,
-            "passed": self.passed,
-            "counts": self.counts,
-            "datasets": self.datasets,
-            "dataset_metadata": self.dataset_metadata,
-            "results": [result.to_dict() for result in self.results],
-        }
+        return self.to_evidence_report().to_dict()
+
+
+def _media_type(source: str) -> str | None:
+    suffix = source.lower().rsplit(".", maxsplit=1)[-1]
+    return {
+        "csv": "text/csv",
+        "json": "application/json",
+        "parquet": "application/vnd.apache.parquet",
+    }.get(suffix)
