@@ -17,6 +17,9 @@ REPORT_SCHEMA_VERSION = "1.0"
 def hash_file(path: str | Path, *, chunk_size: int = 1024 * 1024) -> str:
     """Return a SHA-256 digest without loading the entire artifact into memory."""
 
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be greater than zero")
+
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
         for chunk in iter(lambda: handle.read(chunk_size), b""):

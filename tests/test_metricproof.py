@@ -16,6 +16,7 @@ from metricproof import (
     check_population_preserved,
     check_ratio_consistency,
     check_unique_grain,
+    hash_file,
     register_check_type,
 )
 from metricproof.contract import load_contract
@@ -68,6 +69,11 @@ class CheckTests(unittest.TestCase):
 
 
 class ContractTests(unittest.TestCase):
+    def test_hash_file_rejects_non_positive_chunk_sizes(self):
+        with tempfile.NamedTemporaryFile() as handle:
+            with self.assertRaisesRegex(ValueError, "chunk_size"):
+                hash_file(handle.name, chunk_size=0)
+
     def test_valid_retention_contract_passes(self):
         report = audit_contract(ROOT / "examples" / "retention_contract.json")
         self.assertTrue(report.passed)
