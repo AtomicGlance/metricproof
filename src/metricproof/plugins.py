@@ -24,6 +24,7 @@ class CheckRunner(Protocol):
 
 
 _CHECKS: dict[str, CheckRunner] = {}
+_IDENTITIES: dict[str, dict[str, str | None]] = {}
 _ENTRY_POINTS_LOADED = False
 
 
@@ -43,12 +44,20 @@ def register_check_type(
     if normalized in _CHECKS and not replace:
         raise ValueError(f"check type {normalized!r} is already registered")
     _CHECKS[normalized] = runner
+    from ._version import __version__
+
+    module = getattr(runner, "__module__", type(runner).__module__)
+    _IDENTITIES[normalized] = {
+        "name": f"{module}:{getattr(runner, '__qualname__', type(runner).__qualname__)}",
+        "version": __version__ if module == "metricproof.contract" else None,
+    }
 
 
 def unregister_check_type(name: str) -> None:
     """Remove a check type. Primarily useful for isolated plugin tests."""
 
     _CHECKS.pop(name, None)
+    _IDENTITIES.pop(name, None)
 
 
 def _load_entry_point_checks() -> None:
@@ -58,6 +67,16 @@ def _load_entry_point_checks() -> None:
     _ENTRY_POINTS_LOADED = True
     for entry_point in entry_points(group="metricproof.checks"):
         register_check_type(entry_point.name, entry_point.load())
+        if entry_point.dist is not None:
+            _IDENTITIES[entry_point.name] = {
+                "name": f"{entry_point.dist.metadata['Name']}:{entry_point.value}",
+                "version": entry_point.dist.version,
+            }
+
+
+def check_identity(name: str) -> dict[str, str | None]:
+    """Identity of the actual registered runner; unknown versions remain explicit."""
+    return dict(_IDENTITIES.get(name, {"name": name, "version": None}))
 
 
 def get_check_runner(name: str) -> CheckRunner:

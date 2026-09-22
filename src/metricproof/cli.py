@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .comparison import compare_reports, render_comparison
 from .contract import audit_contract, load_contract
 from .report import render_json, render_markdown, render_text
 from .schema import load_schema
@@ -34,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Report format (default: text).",
     )
     audit.add_argument("--output", help="Optional report output path.")
+    compare = subparsers.add_parser("compare", help="Compare two saved metric audits.")
+    compare.add_argument("previous")
+    compare.add_argument("current")
+    compare.add_argument("--format", choices=("text", "json", "markdown"), default="text")
+    compare.add_argument("--output")
     validate = subparsers.add_parser(
         "validate-contract", help="Validate a contract without reading datasets."
     )
@@ -45,6 +51,20 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "compare":
+        try:
+            previous = json.loads(Path(args.previous).read_text(encoding="utf-8"))
+            current = json.loads(Path(args.current).read_text(encoding="utf-8"))
+            comparison = compare_reports(previous, current)
+            output = render_comparison(comparison, args.format)
+            if args.output:
+                Path(args.output).write_text(output, encoding="utf-8")
+            else:
+                print(output, end="")
+            return comparison.exit_code
+        except (OSError, ValueError, TypeError) as exc:
+            print(f"MetricProof comparison error: {exc}", file=sys.stderr)
+            return 2
     if args.command == "schema":
         print(json.dumps(load_schema(args.kind), indent=2))
         return 0

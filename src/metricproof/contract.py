@@ -18,7 +18,7 @@ from .checks import (
 )
 from .evidence import hash_file
 from .models import AuditReport, CheckResult
-from .plugins import Datasets, get_check_runner, register_check_type
+from .plugins import Datasets, check_identity, get_check_runner, register_check_type
 
 SUPPORTED_CONTRACT_VERSIONS = frozenset({"1.0"})
 SUPPORTED_SEVERITIES = frozenset({"critical", "warning", "info"})
@@ -143,6 +143,7 @@ def audit_contract(contract_path: str | Path) -> AuditReport:
         }
 
     results: list[CheckResult] = []
+    provenance = {}
     for index, raw_check in enumerate(checks, start=1):
         check = dict(raw_check)
         check.setdefault("id", f"check-{index}")
@@ -153,6 +154,14 @@ def audit_contract(contract_path: str | Path) -> AuditReport:
         except (KeyError, TypeError, ValueError) as exc:
             result = _error_result(check, exc)
         results.append(result)
+        from .comparison import definition_digest
+
+        definition = dict(check, severity=severity)
+        provenance[check["id"]] = {
+            "definition": definition,
+            "sha256": definition_digest(definition),
+            "runner": check_identity(check_type),
+        }
 
     return AuditReport(
         title=str(contract.get("title", path.stem)),
@@ -163,6 +172,7 @@ def audit_contract(contract_path: str | Path) -> AuditReport:
         contract_metadata={
             "source": path.name,
             "sha256": hash_file(path),
+            "checks": provenance,
         },
     )
 
