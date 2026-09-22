@@ -143,6 +143,74 @@ metricproof schema evidence
 metricproof validate-contract examples/retention_contract.json
 ```
 
+## Compare saved audits (0.3)
+
+Save audit JSON before and after a data or contract change, then compare:
+
+```bash
+metricproof compare previous.json current.json
+metricproof compare previous.json current.json --format markdown --output changes.md
+metricproof compare previous.json current.json --format json
+```
+
+The Python API is `compare_reports(previous_report, current_report)`, accepting
+decoded report dictionaries or MetricProof report objects. It reads no datasets
+and executes no plugins. Results expose `changes`, `warnings`, `regressions`,
+`current_failures`, `needs_review`, `exit_code`, and `to_dict()`.
+
+Checks are matched by `check_id`, artifacts by `name`; duplicates are errors.
+Timestamps and result/artifact ordering are ignored. Configuration arrays retain
+their order because order can affect a plugin's meaning. Definition fingerprints
+use sorted-key compact JSON with non-finite numbers prohibited. An explicit
+default option and an omitted option may be flagged as different conservatively.
+
+Audit reports now record each definition and its SHA-256 fingerprint under
+`context.contract.checks`, together with runner identity/version. This is an
+additive use of evidence schema 1.0's open context; existing consumers and older
+reports remain supported. Registered custom runners without distribution metadata
+have an unknown version. Entry-point plugins record their distribution version.
+
+Comparison exit codes:
+
+- `0`: no new blocking result or review requirement. An unchanged existing audit
+  failure remains visible under `current_failures`; this is not a clean-audit gate.
+- `1`: a new critical failure/error, escalation to an execution error, removed
+  critical check, changed definition/type/severity/runner/producer/contract version,
+  or unknown comparability requires attention.
+- `2`: malformed input, contradictory summaries, duplicate identifiers, unsupported
+  schema/report type, or a file I/O error.
+
+Input fingerprints changing alone do not block. Removed checks are reported as
+removed, never as improvements. Old reports missing definition provenance require
+review. Changed observed/expected values are shown without automatically blocking.
+Only `metric-audit` reports are supported; NWB evidence semantics need a separate
+adapter. Fingerprints detect differences, not authenticity or scientific validity.
+
+For CI, run the current audit and comparison as separate steps so existing audit
+failures still block. Preserve the baseline from a trusted previous build, rather
+than replacing it automatically with the new output:
+
+```yaml
+- run: metricproof audit contract.json --format json --output current.json
+- if: always()
+  run: metricproof compare baseline.json current.json --format markdown --output changes.md
+```
+
+Reproduce population loss followed by a relaxed contract:
+
+```bash
+python examples/compare_retention.py
+metricproof compare examples/comparison-output/initial.json examples/comparison-output/dropped.json
+metricproof compare examples/comparison-output/dropped.json examples/comparison-output/relaxed.json
+```
+
+Both comparisons exit 1: the first loses half the eligible accounts; the second
+changes the minimum coverage to 50%, causing the audit to pass but requiring review
+of the changed definition. The script writes three saved audits and rebuilds its
+small synthetic inputs; it overwrites only its generated `comparison-output`
+directory files. These demonstrate recorded evidence, not a claim about real
+customer behavior or the appropriateness of a 50% threshold.
+
 ## Check plugins
 
 External packages can add contract check types without modifying MetricProof.
