@@ -99,7 +99,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(payload["schema_version"], "1.0")
         self.assertEqual(payload["report_type"], "metric-audit")
         self.assertEqual(payload["producer"]["name"], "metricproof")
-        self.assertEqual(payload["producer"]["version"], "0.3.0")
+        self.assertEqual(payload["producer"]["version"], "0.4.0")
         headline = next(
             artifact for artifact in payload["artifacts"]
             if artifact["name"] == "headline"
@@ -237,7 +237,7 @@ class ContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "metricproof 0.3.0\n")
+        self.assertEqual(result.stdout, "metricproof 0.4.0\n")
         self.assertEqual(result.stderr, "")
 
     def test_cli_validates_contract_without_loading_datasets(self):
