@@ -211,6 +211,61 @@ small synthetic inputs; it overwrites only its generated `comparison-output`
 directory files. These demonstrate recorded evidence, not a claim about real
 customer behavior or the appropriateness of a 50% threshold.
 
+## Join integrity and grouped reconciliation
+
+Two additional built-in checks audit relationships between extracts. Existing
+`reconciliation` behavior is unchanged. Both work through the Python API and
+JSON contracts:
+
+```json
+{"id": "customer-join", "type": "join_integrity",
+ "left": "customers", "right": "subscriptions", "joined": "joined",
+ "keys": ["customer_id"], "relationship": "many_to_one",
+ "join_type": "left", "missing_keys": "error"}
+```
+
+Dataset names refer to the contract's `datasets` mapping. Keys must have the same
+names in all three extracts; composite keys are supported. `one_to_one` requires
+both input keys to be unique; `many_to_one` requires the right keys to be unique.
+`left` preserves left multiplicities, while `inner` retains only matching keys.
+Duplicate right keys fail even when the joined extract has been deduplicated.
+One-to-many and outer joins are unsupported, not evidence of incorrect data.
+Blank/null keys are errors; key types are not coerced (CSV strings and JSON
+numbers should be normalized consistently before auditing). Empty extracts are
+allowed. The check verifies key multiplicities, **not non-key payload values**,
+the actual SQL, or the appropriateness of the declared relationship.
+
+```json
+{"id": "regional-totals", "type": "grouped_reconciliation",
+ "left": {"dataset": "expected", "column": "amount"},
+ "right": {"dataset": "reported", "column": "amount"},
+ "keys": ["region"], "absolute_tolerance": 0.01,
+ "relative_tolerance": 0.0, "missing_values": "error"}
+```
+
+This compares sums per group. A missing group fails even if its sum would be
+zero. Tolerances are finite and nonnegative; a group passes when its absolute
+difference is at most the larger of the absolute tolerance and the relative
+tolerance multiplied by the larger absolute total. Missing numeric values
+default to errors; explicit `missing_values: "zero"` treats blanks/nulls as zero,
+but never missing columns or non-finite numbers. Arithmetic uses floating point,
+not exact monetary decimals. Evidence contains at most ten issues, with total
+issue counts retained in the summary. Samples may contain sensitive identifiers;
+review reports before sharing them.
+
+Run the synthetic research example:
+
+```bash
+python examples/participant_flow.py
+```
+
+It accounts for one screening exclusion, detects an unexplained participant loss,
+flags a duplicate participant, and exposes a treatment-group loss despite an
+unchanged total row count. It also demonstrates population preservation passing
+an inflated join while join integrity fails, followed by a valid join passing.
+It does not assess exclusion validity, statistical significance, causality, or
+whether the supplied extracts represent the complete study.
+
 ## Check plugins
 
 External packages can add contract check types without modifying MetricProof.

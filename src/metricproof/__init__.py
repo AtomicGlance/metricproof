@@ -20,8 +20,11 @@ from .evidence import (
 )
 from .models import AuditReport, CheckResult
 from .plugins import available_check_types, register_check_type
+from .relational import check_grouped_reconciliation, check_join_integrity
 
 __all__ = [
+    "check_grouped_reconciliation",
+    "check_join_integrity",
     "ComparisonReport",
     "compare_reports",
     "AuditReport",

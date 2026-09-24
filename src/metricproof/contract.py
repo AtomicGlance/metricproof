@@ -19,6 +19,7 @@ from .checks import (
 from .evidence import hash_file
 from .models import AuditReport, CheckResult
 from .plugins import Datasets, check_identity, get_check_runner, register_check_type
+from .relational import check_grouped_reconciliation, check_join_integrity
 
 SUPPORTED_CONTRACT_VERSIONS = frozenset({"1.0"})
 SUPPORTED_SEVERITIES = frozenset({"critical", "warning", "info"})
@@ -259,7 +260,30 @@ def _cohort_integrity(
     )
 
 
+def _join_integrity(check, datasets, severity):
+    return check_join_integrity(
+        datasets[check["left"]], datasets[check["right"]], datasets[check["joined"]],
+        keys=check["keys"], relationship=check.get("relationship", "many_to_one"),
+        join_type=check.get("join_type", "left"), missing_keys=check.get("missing_keys", "error"),
+        check_id=check["id"], severity=severity,
+    )
+
+
+def _grouped_reconciliation(check, datasets, severity):
+    return check_grouped_reconciliation(
+        datasets[check["left"]["dataset"]], datasets[check["right"]["dataset"]],
+        keys=check["keys"], left_column=check["left"]["column"],
+        right_column=check["right"]["column"],
+        absolute_tolerance=check.get("absolute_tolerance", 0.0),
+        relative_tolerance=check.get("relative_tolerance", 0.0),
+        missing_values=check.get("missing_values", "error"),
+        check_id=check["id"], severity=severity,
+    )
+
+
 for _name, _runner in {
+    "join_integrity": _join_integrity,
+    "grouped_reconciliation": _grouped_reconciliation,
     "unique_grain": _unique_grain,
     "numeric_range": _numeric_range,
     "ratio_consistency": _ratio_consistency,
